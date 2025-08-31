@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Qibla Direction Tool</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #e9ecef;
+    }
+    #header-container {
+      background: #343a40;
+      color: #fff;
+      padding: 15px;
+      font-size: 16px;
+      border-bottom: 3px solid #007bff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      position: relative;
+    }
+    #info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    #instructions {
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+    #map {
+      height: calc(100vh - 120px);
+      width: 100%;
+    }
+    .btn-container {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .btn {
+      background: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      margin: 0 5px;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      flex: 1;
+    }
+    .btn:hover {
+      background: #0056b3;
+      transform: translateY(-2px);
+    }
+    /* Modal styles */
+    #triangleModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #triangleContent {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      max-width: 95%;
+      min-width: unset;
+      animation: fadeIn 0.3s ease-out;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    h3 {
+      color: #333;
+      margin-top: 0;
+      font-size: 20px;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin: 15px 0;
+      background-color: #fefefe;
+      border-radius: 8px;
+      max-width: 100%;
+      height: auto;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Search Bar styles */
+    #search-container {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      border-radius: 50px;
+      overflow: hidden;
+      display: flex;
+      background-color: white;
+    }
+    #search-input {
+      box-sizing: border-box;
+      border: none;
+      width: 100%;
+      height: 40px;
+      padding: 0 15px;
+      font-size: 16px;
+      outline: none;
+      text-overflow: ellipsis;
+    }
+
+    /* Media query for larger screens */
+    @media (min-width: 601px) {
+      #header-container {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+      #info {
+        flex-direction: row;
+        width: auto;
+        flex-grow: 1;
+        justify-content: flex-start;
+      }
+      #instructions {
+        font-size: 18px;
+        margin-bottom: 0;
+      }
+      #map {
+        height: calc(100vh - 63px);
+      }
+      .btn-container {
+        width: auto;
+      }
+      .btn {
+        flex: unset;
+        margin-left: 10px;
+      }
+      #triangleContent {
+        padding: 30px;
+        min-width: 400px;
+        max-width: 90%;
+      }
+      #search-container {
+        position: static;
+        margin: 0;
+        margin-left: 20px;
+        box-shadow: none;
+        background: transparent;
+      }
+      #search-input {
+        border-radius: 2px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        background-color: white;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="header-container">
+    <div id="info">
+      <span id="instructions">Click your location, then two points along your reference (wall/street).</span>
+      <div class="btn-container">
+        <button class="btn" onclick="restartTool()">Restart</button>
+        <button class="btn" onclick="showTriangle()">Show Triangle</button>
+        <button class="btn" id="toggle3dBtn" onclick="toggle3DView()">Turn 3D On</button>
+      </div>
+    </div>
+    <div id="search-container">
+      <input id="search-input" type="text" placeholder="Search for a location">
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <div id="triangleModal">
+    <div id="triangleContent">
+      <h3>Triangle for Qibla Direction</h3>
+      <p id="triangleText"></p>
+      <canvas id="triangleCanvas" width="450" height="300"></canvas><br> 
+      <div class="btn-container">
+        <button class="btn" onclick="rotateTriangle(-90)">Rotate Left 90°</button>
+        <button class="btn" onclick="rotateTriangle(90)">Rotate Right 90°</button>
+      </div>
+      <br>
+      <div class="btn-container">
+        <button class="btn" onclick="printTriangle()">Print</button>
+        <button class="btn" onclick="closeTriangle()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let map;
+    let myMarker, refMarker1, refMarker2;
+    let qiblaBearing, refBearing, diffAngle;
+    const kaaba = { lat: 21.4225, lng: 39.8262 };
+    let geocoder;
+    let triangleRotation = 0;
+    let turnAngle, turnDirection;
+    let actualRefPoint1, actualRefPoint2;
+
+    function toRad(deg) { return deg * Math.PI / 180; }
+    function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function bearing(lat1, lon1, lat2, lon2) {
+      let dLon = toRad(lon2 - lon1);
+      lat1 = toRad(lat1);
+      lat2 = toRad(lat2);
+      let y = Math.sin(dLon) * Math.cos(lat2);
+      let x = Math.cos(lat1) * Math.sin(lat2) -
+              Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+      return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    function updateCalculation() {
+      if (myMarker && refMarker1 && refMarker2) {
+        let loc = myMarker.getPosition();
+        let r1 = refMarker1.getPosition();
+        let r2 = refMarker2.getPosition();
+
+        if (r1.lat() === r2.lat() && r1.lng() === r2.lng()) {
+          document.getElementById("instructions").innerHTML = "<b>Error:</b> Reference points cannot be the same. Please adjust.";
+          return;
+        }
+
+        qiblaBearing = bearing(loc.lat(), loc.lng(), kaaba.lat, kaaba.lng);
+        
+        let refBearingAB = bearing(r1.lat(), r1.lng(), r2.lat(), r2.lng());
+        let refBearingBA = bearing(r2.lat(), r2.lng(), r1.lat(), r1.lng());
+
+        let diffAB = (qiblaBearing - refBearingAB + 360) % 360;
+        let diffBA = (qiblaBearing - refBearingBA + 360) % 360;
+
+        let selectedRefBearing;
+
+        if (diffAB <= 180) {
+            selectedRefBearing = refBearingAB;
+            actualRefPoint1 = r1;
+            actualRefPoint2 = r2;
+        } else if (diffBA <= 180) {
+            selectedRefBearing = refBearingBA;
+            actualRefPoint1 = r2;
+            actualRefPoint2 = r1;
+        } else {
+            if (Math.abs(diffAB - 180) < Math.abs(diffBA - 180)) {
+                selectedRefBearing = refBearingAB;
+                actualRefPoint1 = r1;
+                actualRefPoint2 = r2;
+            } else {
+                selectedRefBearing = refBearingBA;
+                actualRefPoint1 = r2;
+                actualRefPoint2 = r1;
+            }
+        }
+
+        refBearing = selectedRefBearing;
+        diffAngle = (qiblaBearing - refBearing + 360) % 360;
+
+        if (diffAngle > 90 && diffAngle <= 180) {
+            turnAngle = 180 - diffAngle;
+            turnDirection = (diffAngle < 180 && (qiblaBearing - refBearing + 360) % 360 > 90) ? "Left" : "Right";
+        } else if (diffAngle > 180 && diffAngle < 270) { 
+            turnAngle = diffAngle - 180;
+            turnDirection = "Right";
+        } else if (diffAngle >= 270) {
+            turnAngle = 360 - diffAngle;
+            turnDirection = "Left";
+        } else { 
+            turnAngle = diffAngle;
+            turnDirection = "Right";
+        }
+        
+        document.getElementById("instructions").innerHTML =
+          `<b>Qibla Bearing:</b> ${qiblaBearing.toFixed(2)}° | 
+           <b>Reference Bearing:</b> ${refBearing.toFixed(2)}° | 
+           <b>Turn:</b> ${turnAngle.toFixed(2)}° to the ${turnDirection}.`;
+      }
+    }
+
+    function restartTool() {
+      if (myMarker) myMarker.setMap(null);
+      if (refMarker1) refMarker1.setMap(null);
+      if (refMarker2) refMarker2.setMap(null);
+      myMarker = null;
+      refMarker1 = null;
+      refMarker2 = null;
+      diffAngle = null;
+      document.getElementById("instructions").textContent = "Click your location, then two points along your reference.";
+    }
+
+    function toggle3DView() {
+      const is3D = map.getTilt() === 45;
+      const btn = document.getElementById('toggle3dBtn');
+      if (is3D) {
+        map.setTilt(0);
+        map.setHeading(0);
+        btn.textContent = 'Turn 3D On';
+      } else {
+        map.setTilt(45);
+        map.setHeading(90);
+        btn.textContent = 'Turn 2D On';
+      }
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 18,
+        center: { lat: 0, lng: 0 },
+        mapTypeId: "satellite",
+        gestureHandling: "greedy",
+        tilt: 0,
+        heading: 0
+      });
+      geocoder = new google.maps.Geocoder();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          let myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          map.setCenter(myLocation);
+          placeMyMarker(myLocation);
+        }, () => alert("Location access denied. Click to set your location manually."));
+      }
+
+      map.addListener("click", (e) => {
+        if (!myMarker) {
+          placeMyMarker(e.latLng);
+        } else if (!refMarker1) {
+          placeRefMarker1(e.latLng);
+        } else if (!refMarker2) {
+          placeRefMarker2(e.latLng);
+        }
+      });
+      
+      const searchInput = document.getElementById("search-input");
+      searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          const address = searchInput.value;
+          geocoder.geocode({ address: address }, (results, status) => {
+            if (status === "OK") {
+              map.setCenter(results[0].geometry.location);
+              map.setZoom(18);
+            } else {
+              alert("Geocode was not successful for the following reason: " + status);
+            }
+          });
+        }
+      });
+    }
+
+    function placeMyMarker(position) {
+      myMarker = new google.maps.Marker({
+        position,
+        map,
+        draggable: true,
+        label: "You"
+      });
+      myMarker.addListener("dragend", updateCalculation);
+      new google.maps.Marker({ position: kaaba, map: map, label: "Kaaba" });
+    }
+
+    function placeRefMarker1(position) {
+      refMarker1 = new google.maps.Marker({
+        position,
+        map,
+        draggable: true,
+        label: "A"
+      });
+      refMarker1.addListener("dragend", updateCalculation);
+    }
+
+    function placeRefMarker2(position) {
+      refMarker2 = new google.maps.Marker({
+        position,
+        map,
+        draggable: true,
+        label: "B"
+      });
+      refMarker2.addListener("dragend", updateCalculation);
+      updateCalculation();
+    }
+
+    function rotateTriangle(degrees) {
+      triangleRotation += degrees;
+      drawTriangle();
+    }
+
+    function showTriangle() {
+      if (!diffAngle) {
+        alert("Please set your location and reference points first.");
+        return;
+      }
+      triangleRotation = 0;
+      drawTriangle();
+      document.getElementById("triangleModal").style.display = "flex";
+    }
+
+    function drawTriangle() {
+      const canvas = document.getElementById("triangleCanvas");
+      const ctx = canvas.getContext("2d");
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const angle = turnAngle; 
+
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.save();
+      ctx.translate(canvasWidth / 2, canvasHeight / 2);
+      ctx.rotate(toRad(triangleRotation));
+      ctx.translate(-canvasWidth / 2, -canvasHeight / 2);
+
+      const scale = 1.5; 
+      const baseCm = 10 * scale; 
+      const oppositeCm = Math.tan(toRad(angle)) * baseCm;
+
+      const maxBasePx = canvasWidth * 0.7; 
+      const maxOppositePx = canvasHeight * 0.7; 
+
+      let currentBasePx = baseCm * 10;
+      let currentOppositePx = oppositeCm * 10;
+
+      if (Math.abs(currentBasePx) > maxBasePx || Math.abs(currentOppositePx) > maxOppositePx) {
+          const ratioWidth = maxBasePx / Math.abs(currentBasePx);
+          const ratioHeight = maxOppositePx / Math.abs(currentOppositePx);
+          const dynamicScale = Math.min(ratioWidth, ratioHeight);
+          currentBasePx *= dynamicScale;
+          currentOppositePx *= dynamicScale;
+      }
+
+      let xRefStart, xRefEnd, xOpposite;
+      const yBase = (canvasHeight + currentOppositePx) / 2;
+      const yOpposite = yBase - currentOppositePx;
+
+      if (turnDirection === "Right") {
+          xRefStart = (canvasWidth - currentBasePx) / 2;
+          xRefEnd = xRefStart + currentBasePx;
+          xOpposite = xRefStart;
+      } else { 
+          xRefStart = (canvasWidth + currentBasePx) / 2;
+          xRefEnd = xRefStart - currentBasePx;
+          xOpposite = xRefStart;
+      }
+
+      ctx.beginPath();
+      ctx.moveTo(xRefStart, yBase);
+      ctx.lineTo(xRefEnd, yBase);
+      ctx.lineTo(xOpposite, yOpposite);
+      ctx.closePath();
+      ctx.strokeStyle = "#007bff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = "#f0f8ff";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(xRefStart, yBase);
+      ctx.lineTo(xRefEnd, yBase);
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      const angleArcRadius = 25;
+      ctx.beginPath();
+      if (turnDirection === "Right") {
+        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(0), toRad(-angle), true);
+      } else {
+        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(180), toRad(180 + angle), false);
+      }
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = "#333";
+      ctx.font = "14px Arial";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`Base: ${baseCm.toFixed(1)} cm`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 10);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      if (turnDirection === "Right") {
+        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite - 10, yBase - currentOppositePx / 2);
+      } else {
+        ctx.textAlign = 'left';
+        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite + 10, yBase - currentOppositePx / 2);
+      }
+
+      ctx.fillStyle = "#FF0000";
+      ctx.fillText(`Reference Side`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 30);
+      
+      const angleTextOffset = 15;
+      let angleTextX, angleTextY;
+      
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = "#333";
+      
+      if (turnDirection === "Right") {
+        angleTextX = xRefStart + angleTextOffset * Math.cos(toRad(angle / 2));
+        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
+      } else {
+        angleTextX = xRefStart - angleTextOffset * Math.cos(toRad(angle / 2));
+        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
+      }
+      
+      ctx.fillText(`${angle.toFixed(1)}°`, angleTextX, angleTextY);
+
+      document.getElementById("triangleText").innerHTML =
+        `Base (align with reference): <b>${baseCm.toFixed(1)} cm</b><br>
+         Opposite side: <b>${oppositeCm.toFixed(1)} cm</b><br>
+         Hypotenuse: <b>${Math.sqrt(baseCm**2 + oppositeCm**2).toFixed(1)} cm</b><br>
+         Turn: <b>${angle.toFixed(2)}° to the ${turnDirection}</b>`;
+
+      ctx.restore();
+    }
+
+    function closeTriangle() {
+      document.getElementById("triangleModal").style.display = "none";
+    }
+
+    function printTriangle() {
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write("<h3>Qibla Triangle</h3>");
+      printWindow.document.write(document.getElementById("triangleText").innerHTML);
+      printWindow.document.write("<br><img src='" + document.getElementById("triangleCanvas").toDataURL() + "'>");
+      printWindow.document.close();
+      printWindow.print();
+    }
+  </script>
+
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1gS6-rK3A-W8fXYrctE1MSuFDNzD61eQ&libraries=places&callback=initMap">
+  </script>
+</body>
+</html>
