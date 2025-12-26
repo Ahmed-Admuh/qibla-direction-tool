@@ -104,7 +104,7 @@
       from { opacity: 0; transform: translateY(-20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
+    
     /* Search Bar styles */
     #search-container {
       width: 100%;
@@ -174,7 +174,6 @@
     }
   </style>
 </head>
-
 <body>
   <div id="header-container">
     <div id="info">
@@ -185,19 +184,17 @@
         <button class="btn" id="toggle3dBtn" onclick="toggle3DView()">Turn 3D On</button>
       </div>
     </div>
-
     <div id="search-container">
       <input id="search-input" type="text" placeholder="Search for a location">
     </div>
   </div>
-
   <div id="map"></div>
 
   <div id="triangleModal">
     <div id="triangleContent">
       <h3>Triangle for Qibla Direction</h3>
       <p id="triangleText"></p>
-      <canvas id="triangleCanvas" width="450" height="300"></canvas><br>
+      <canvas id="triangleCanvas" width="450" height="300"></canvas><br> 
       <div class="btn-container">
         <button class="btn" onclick="rotateTriangle(-90)">Rotate Left 90°</button>
         <button class="btn" onclick="rotateTriangle(90)">Rotate Right 90°</button>
@@ -216,7 +213,6 @@
     let qiblaBearing, refBearing, diffAngle;
     const kaaba = { lat: 21.4225, lng: 39.8262 };
     let geocoder;
-    let autocomplete; // <-- added
     let triangleRotation = 0;
     let turnAngle, turnDirection;
     let actualRefPoint1, actualRefPoint2;
@@ -246,7 +242,7 @@
         }
 
         qiblaBearing = bearing(loc.lat(), loc.lng(), kaaba.lat, kaaba.lng);
-
+        
         let refBearingAB = bearing(r1.lat(), r1.lng(), r2.lat(), r2.lng());
         let refBearingBA = bearing(r2.lat(), r2.lng(), r1.lat(), r1.lng());
 
@@ -256,45 +252,45 @@
         let selectedRefBearing;
 
         if (diffAB <= 180) {
-          selectedRefBearing = refBearingAB;
-          actualRefPoint1 = r1;
-          actualRefPoint2 = r2;
-        } else if (diffBA <= 180) {
-          selectedRefBearing = refBearingBA;
-          actualRefPoint1 = r2;
-          actualRefPoint2 = r1;
-        } else {
-          if (Math.abs(diffAB - 180) < Math.abs(diffBA - 180)) {
             selectedRefBearing = refBearingAB;
             actualRefPoint1 = r1;
             actualRefPoint2 = r2;
-          } else {
+        } else if (diffBA <= 180) {
             selectedRefBearing = refBearingBA;
             actualRefPoint1 = r2;
             actualRefPoint2 = r1;
-          }
+        } else {
+            if (Math.abs(diffAB - 180) < Math.abs(diffBA - 180)) {
+                selectedRefBearing = refBearingAB;
+                actualRefPoint1 = r1;
+                actualRefPoint2 = r2;
+            } else {
+                selectedRefBearing = refBearingBA;
+                actualRefPoint1 = r2;
+                actualRefPoint2 = r1;
+            }
         }
 
         refBearing = selectedRefBearing;
         diffAngle = (qiblaBearing - refBearing + 360) % 360;
 
         if (diffAngle > 90 && diffAngle <= 180) {
-          turnAngle = 180 - diffAngle;
-          turnDirection = (diffAngle < 180 && (qiblaBearing - refBearing + 360) % 360 > 90) ? "Left" : "Right";
-        } else if (diffAngle > 180 && diffAngle < 270) {
-          turnAngle = diffAngle - 180;
-          turnDirection = "Right";
+            turnAngle = 180 - diffAngle;
+            turnDirection = (diffAngle < 180 && (qiblaBearing - refBearing + 360) % 360 > 90) ? "Left" : "Right";
+        } else if (diffAngle > 180 && diffAngle < 270) { 
+            turnAngle = diffAngle - 180;
+            turnDirection = "Right";
         } else if (diffAngle >= 270) {
-          turnAngle = 360 - diffAngle;
-          turnDirection = "Left";
-        } else {
-          turnAngle = diffAngle;
-          turnDirection = "Right";
+            turnAngle = 360 - diffAngle;
+            turnDirection = "Left";
+        } else { 
+            turnAngle = diffAngle;
+            turnDirection = "Right";
         }
-
+        
         document.getElementById("instructions").innerHTML =
-          `<b>Qibla Bearing:</b> ${qiblaBearing.toFixed(2)}° |
-           <b>Reference Bearing:</b> ${refBearing.toFixed(2)}° |
+          `<b>Qibla Bearing:</b> ${qiblaBearing.toFixed(2)}° | 
+           <b>Reference Bearing:</b> ${refBearing.toFixed(2)}° | 
            <b>Turn:</b> ${turnAngle.toFixed(2)}° to the ${turnDirection}.`;
       }
     }
@@ -307,8 +303,7 @@
       refMarker1 = null;
       refMarker2 = null;
       diffAngle = null;
-      document.getElementById("instructions").textContent =
-        "Click your location, then two points along your reference.";
+      document.getElementById("instructions").textContent = "Click your location, then two points along your reference.";
     }
 
     function toggle3DView() {
@@ -325,18 +320,6 @@
       }
     }
 
-    // --- Search helpers ---
-    function fallbackGeocode(address) {
-      geocoder.geocode({ address }, (results, status) => {
-        if (status === "OK" && results && results[0]) {
-          map.setCenter(results[0].geometry.location);
-          map.setZoom(18);
-        } else {
-          alert("Search failed: " + status);
-        }
-      });
-    }
-
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
         zoom: 18,
@@ -346,7 +329,6 @@
         tilt: 0,
         heading: 0
       });
-
       geocoder = new google.maps.Geocoder();
 
       if (navigator.geolocation) {
@@ -366,36 +348,19 @@
           placeRefMarker2(e.latLng);
         }
       });
-
-      // ✅ Search bar: Places Autocomplete + Enter fallback
+      
       const searchInput = document.getElementById("search-input");
-
-      // Autocomplete (requires Places API enabled)
-      try {
-        autocomplete = new google.maps.places.Autocomplete(searchInput, {
-          fields: ["geometry", "formatted_address", "name"]
-        });
-
-        autocomplete.addListener("place_changed", () => {
-          const place = autocomplete.getPlace();
-          if (!place.geometry || !place.geometry.location) {
-            fallbackGeocode(searchInput.value.trim());
-            return;
-          }
-          map.setCenter(place.geometry.location);
-          map.setZoom(18);
-        });
-      } catch (e) {
-        console.warn("Places Autocomplete not available; using geocoder fallback.", e);
-      }
-
-      // Enter key fallback (works even without Places)
       searchInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
-          event.preventDefault();
-          const q = searchInput.value.trim();
-          if (!q) return;
-          fallbackGeocode(q);
+          const address = searchInput.value;
+          geocoder.geocode({ address: address }, (results, status) => {
+            if (status === "OK") {
+              map.setCenter(results[0].geometry.location);
+              map.setZoom(18);
+            } else {
+              alert("Geocode was not successful for the following reason: " + status);
+            }
+          });
         }
       });
     }
@@ -452,7 +417,7 @@
       const ctx = canvas.getContext("2d");
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      const angle = turnAngle;
+      const angle = turnAngle; 
 
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
       ctx.save();
@@ -460,22 +425,22 @@
       ctx.rotate(toRad(triangleRotation));
       ctx.translate(-canvasWidth / 2, -canvasHeight / 2);
 
-      const scale = 1.5;
-      const baseCm = 10 * scale;
+      const scale = 1.5; 
+      const baseCm = 10 * scale; 
       const oppositeCm = Math.tan(toRad(angle)) * baseCm;
 
-      const maxBasePx = canvasWidth * 0.7;
-      const maxOppositePx = canvasHeight * 0.7;
+      const maxBasePx = canvasWidth * 0.7; 
+      const maxOppositePx = canvasHeight * 0.7; 
 
       let currentBasePx = baseCm * 10;
       let currentOppositePx = oppositeCm * 10;
 
       if (Math.abs(currentBasePx) > maxBasePx || Math.abs(currentOppositePx) > maxOppositePx) {
-        const ratioWidth = maxBasePx / Math.abs(currentBasePx);
-        const ratioHeight = maxOppositePx / Math.abs(currentOppositePx);
-        const dynamicScale = Math.min(ratioWidth, ratioHeight);
-        currentBasePx *= dynamicScale;
-        currentOppositePx *= dynamicScale;
+          const ratioWidth = maxBasePx / Math.abs(currentBasePx);
+          const ratioHeight = maxOppositePx / Math.abs(currentOppositePx);
+          const dynamicScale = Math.min(ratioWidth, ratioHeight);
+          currentBasePx *= dynamicScale;
+          currentOppositePx *= dynamicScale;
       }
 
       let xRefStart, xRefEnd, xOpposite;
@@ -483,13 +448,13 @@
       const yOpposite = yBase - currentOppositePx;
 
       if (turnDirection === "Right") {
-        xRefStart = (canvasWidth - currentBasePx) / 2;
-        xRefEnd = xRefStart + currentBasePx;
-        xOpposite = xRefStart;
-      } else {
-        xRefStart = (canvasWidth + currentBasePx) / 2;
-        xRefEnd = xRefStart - currentBasePx;
-        xOpposite = xRefStart;
+          xRefStart = (canvasWidth - currentBasePx) / 2;
+          xRefEnd = xRefStart + currentBasePx;
+          xOpposite = xRefStart;
+      } else { 
+          xRefStart = (canvasWidth + currentBasePx) / 2;
+          xRefEnd = xRefStart - currentBasePx;
+          xOpposite = xRefStart;
       }
 
       ctx.beginPath();
@@ -526,26 +491,25 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(`Base: ${baseCm.toFixed(1)} cm`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 10);
-
-      ctx.textAlign = (turnDirection === "Right") ? 'right' : 'left';
+      ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       if (turnDirection === "Right") {
         ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite - 10, yBase - currentOppositePx / 2);
       } else {
+        ctx.textAlign = 'left';
         ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite + 10, yBase - currentOppositePx / 2);
       }
 
       ctx.fillStyle = "#FF0000";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
       ctx.fillText(`Reference Side`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 30);
-
+      
       const angleTextOffset = 15;
       let angleTextX, angleTextY;
+      
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = "#333";
-
+      
       if (turnDirection === "Right") {
         angleTextX = xRefStart + angleTextOffset * Math.cos(toRad(angle / 2));
         angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
@@ -553,7 +517,7 @@
         angleTextX = xRefStart - angleTextOffset * Math.cos(toRad(angle / 2));
         angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
       }
-
+      
       ctx.fillText(`${angle.toFixed(1)}°`, angleTextX, angleTextY);
 
       document.getElementById("triangleText").innerHTML =
@@ -579,7 +543,6 @@
     }
   </script>
 
-  <!-- NOTE: For Autocomplete to work, your Google Cloud project must have Places API enabled + billing -->
   <script async
     src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1gS6-rK3A-W8fXYrctE1MSuFDNzD61eQ&libraries=places&callback=initMap">
   </script>
