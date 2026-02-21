@@ -489,19 +489,19 @@
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // ===== Blue Circle (Reference Corner) =====
-  ctx.beginPath();
-  ctx.arc(xRefStart, yBase, 8, 0, 2 * Math.PI);
-  ctx.fillStyle = "#0066FF";
-  ctx.fill();
-  ctx.strokeStyle = "#003399";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  // ===== Blue Circle (Hypotenuse Vertex) =====
+ctx.beginPath();
+ctx.arc(xOpposite, yOpposite, 9, 0, 2 * Math.PI);
+ctx.fillStyle = "#0066FF";
+ctx.fill();
+ctx.strokeStyle = "#003399";
+ctx.lineWidth = 2;
+ctx.stroke();
 
-  ctx.fillStyle = "#0066FF";
-  ctx.font = "bold 14px Arial";
-  ctx.textAlign = "right";
-  ctx.fillText("Reference", xRefStart - 12, yBase + 5);
+ctx.fillStyle = "#0066FF";
+ctx.font = "bold 14px Arial";
+ctx.textAlign = "right";
+ctx.fillText("Direction Start", xOpposite - 12, yOpposite - 10);
 
  // ===== Red Circle (Qibla Direction along hypotenuse) =====
 
