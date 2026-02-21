@@ -413,70 +413,121 @@
     }
 
     function drawTriangle() {
+      const canvas = document.getElementById("triangleCanvas");
+      const ctx = canvas.getContext("2d");
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+      const angle = turnAngle; 
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.save();
+      ctx.translate(canvasWidth / 2, canvasHeight / 2);
+      ctx.rotate(toRad(triangleRotation));
+      ctx.translate(-canvasWidth / 2, -canvasHeight / 2);
 
-  const baseLength = 200;          // base of triangle
-  const angleDeg = qiblaAngle;     // your computed Qibla angle
-  const angleRad = angleDeg * Math.PI / 180;
+      const scale = 1.5; 
+      const baseCm = 10 * scale; 
+      const oppositeCm = Math.tan(toRad(angle)) * baseCm;
 
-  // Starting reference corner (bottom-left of triangle)
-  const xRefStart = canvas.width / 2 - baseLength / 2;
-  const yBase = canvas.height / 2;
+      const maxBasePx = canvasWidth * 0.7; 
+      const maxOppositePx = canvasHeight * 0.7; 
 
-  // Compute opposite point
-  const xOpposite = xRefStart + baseLength;
-  const yOpposite = yBase - Math.tan(angleRad) * baseLength;
+      let currentBasePx = baseCm * 10;
+      let currentOppositePx = oppositeCm * 10;
 
-  ctx.save();
+      if (Math.abs(currentBasePx) > maxBasePx || Math.abs(currentOppositePx) > maxOppositePx) {
+          const ratioWidth = maxBasePx / Math.abs(currentBasePx);
+          const ratioHeight = maxOppositePx / Math.abs(currentOppositePx);
+          const dynamicScale = Math.min(ratioWidth, ratioHeight);
+          currentBasePx *= dynamicScale;
+          currentOppositePx *= dynamicScale;
+      }
 
-  // ===== Draw Triangle =====
-  ctx.beginPath();
-  ctx.moveTo(xRefStart, yBase);      // reference corner
-  ctx.lineTo(xOpposite, yBase);      // base end
-  ctx.lineTo(xOpposite, yOpposite);  // top vertex
-  ctx.closePath();
+      let xRefStart, xRefEnd, xOpposite;
+      const yBase = (canvasHeight + currentOppositePx) / 2;
+      const yOpposite = yBase - currentOppositePx;
 
-  ctx.fillStyle = "rgba(0,0,0,0.05)";
-  ctx.fill();
-  ctx.strokeStyle = "#333";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+      if (turnDirection === "Right") {
+          xRefStart = (canvasWidth - currentBasePx) / 2;
+          xRefEnd = xRefStart + currentBasePx;
+          xOpposite = xRefStart;
+      } else { 
+          xRefStart = (canvasWidth + currentBasePx) / 2;
+          xRefEnd = xRefStart - currentBasePx;
+          xOpposite = xRefStart;
+      }
 
-  // ===== Compute Hypotenuse Direction =====
+      ctx.beginPath();
+      ctx.moveTo(xRefStart, yBase);
+      ctx.lineTo(xRefEnd, yBase);
+      ctx.lineTo(xOpposite, yOpposite);
+      ctx.closePath();
+      ctx.strokeStyle = "#007bff";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = "#f0f8ff";
+      ctx.fill();
 
-  const dx = xOpposite - xRefStart;
-  const dy = yOpposite - yBase;
+      ctx.beginPath();
+      ctx.moveTo(xRefStart, yBase);
+      ctx.lineTo(xRefEnd, yBase);
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = 5;
+      ctx.stroke();
 
-  const length = Math.sqrt(dx * dx + dy * dy);
-  const ux = dx / length;
-  const uy = dy / length;
+      const angleArcRadius = 25;
+      ctx.beginPath();
+      if (turnDirection === "Right") {
+        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(0), toRad(-angle), true);
+      } else {
+        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(180), toRad(180 + angle), false);
+      }
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-  const extensionDistance = 50;
+      ctx.fillStyle = "#333";
+      ctx.font = "14px Arial";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(`Base: ${baseCm.toFixed(1)} cm`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 10);
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      if (turnDirection === "Right") {
+        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite - 10, yBase - currentOppositePx / 2);
+      } else {
+        ctx.textAlign = 'left';
+        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite + 10, yBase - currentOppositePx / 2);
+      }
 
-  const endX = xOpposite + ux * extensionDistance;
-  const endY = yOpposite + uy * extensionDistance;
+      ctx.fillStyle = "#FF0000";
+      ctx.fillText(`Reference Side`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 30);
+      
+      const angleTextOffset = 15;
+      let angleTextX, angleTextY;
+      
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = "#333";
+      
+      if (turnDirection === "Right") {
+        angleTextX = xRefStart + angleTextOffset * Math.cos(toRad(angle / 2));
+        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
+      } else {
+        angleTextX = xRefStart - angleTextOffset * Math.cos(toRad(angle / 2));
+        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
+      }
+      
+      ctx.fillText(`${angle.toFixed(1)}°`, angleTextX, angleTextY);
 
-  // ===== Blue Circle (start of hypotenuse) =====
-  ctx.beginPath();
-  ctx.arc(xRefStart, yBase, 10, 0, 2 * Math.PI);
-  ctx.fillStyle = "#0066FF";
-  ctx.fill();
-  ctx.strokeStyle = "#003399";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+      document.getElementById("triangleText").innerHTML =
+        `Base (align with reference): <b>${baseCm.toFixed(1)} cm</b><br>
+         Opposite side: <b>${oppositeCm.toFixed(1)} cm</b><br>
+         Hypotenuse: <b>${Math.sqrt(baseCm**2 + oppositeCm**2).toFixed(1)} cm</b><br>
+         Turn: <b>${angle.toFixed(2)}° to the ${turnDirection}</b>`;
 
-  // ===== Red Circle (Qibla direction end) =====
-  ctx.beginPath();
-  ctx.arc(endX, endY, 10, 0, 2 * Math.PI);
-  ctx.fillStyle = "#FF0000";
-  ctx.fill();
-  ctx.strokeStyle = "#990000";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  ctx.restore();
-}
+      ctx.restore();
+    }
 
     function closeTriangle() {
       document.getElementById("triangleModal").style.display = "none";
