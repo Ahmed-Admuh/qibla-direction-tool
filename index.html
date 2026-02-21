@@ -503,18 +503,36 @@
   ctx.textAlign = "right";
   ctx.fillText("Reference", xRefStart - 12, yBase + 5);
 
-  // ===== Red Circle (Qibla Direction) =====
-  ctx.beginPath();
-  ctx.arc(xOpposite, yOpposite, 8, 0, 2 * Math.PI);
-  ctx.fillStyle = "#FF0000";
-  ctx.fill();
-  ctx.strokeStyle = "#990000";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+ // ===== Red Circle (Qibla Direction along hypotenuse) =====
 
-  ctx.fillStyle = "#FF0000";
-  ctx.textAlign = "left";
-  ctx.fillText("Qibla", xOpposite + 12, yOpposite - 5);
+// Direction vector from reference corner to opposite vertex
+const dx = xOpposite - xRefStart;
+const dy = yOpposite - yBase;
+
+// Normalize vector
+const length = Math.sqrt(dx * dx + dy * dy);
+const ux = dx / length;
+const uy = dy / length;
+
+// Extend beyond triangle
+const extensionDistance = 40; // how far beyond triangle
+const qiblaX = xOpposite + ux * extensionDistance;
+const qiblaY = yOpposite + uy * extensionDistance;
+
+// Draw red circle at extended direction
+ctx.beginPath();
+ctx.arc(qiblaX, qiblaY, 10, 0, 2 * Math.PI);
+ctx.fillStyle = "#FF0000";
+ctx.fill();
+ctx.strokeStyle = "#990000";
+ctx.lineWidth = 2;
+ctx.stroke();
+
+// Label
+ctx.fillStyle = "#FF0000";
+ctx.font = "bold 14px Arial";
+ctx.textAlign = "left";
+ctx.fillText("Qibla", qiblaX + 12, qiblaY);
 
   // ===== Measurements Text =====
   ctx.fillStyle = "#333";
