@@ -1,208 +1,946 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-  <title>Qibla Direction Tool</title>
+  <meta charset="UTF-8">
+  <title>Qibla Finder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <style>
+    :root {
+      --navy: #10202B;
+      --navy-light: #16303F;
+      --teal: #1E4B47;
+      --gold: #C9A24B;
+      --gold-light: #E4C878;
+      --ivory: #F4EFE4;
+      --terracotta: #B5542A;
+      --ink: #1B1B18;
+      --glass-bg: rgba(250, 247, 240, 0.88);
+      --ink-soft: rgba(27, 27, 24, 0.6);
+      --font-display: 'Amiri', serif;
+      --font-body: 'Inter', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #e9ecef;
+      font-family: var(--font-body);
+      background: var(--navy);
+      color: var(--ivory);
+      overflow: hidden;
     }
-    #header-container {
-      background: #343a40;
-      color: #fff;
-      padding: 15px;
-      font-size: 16px;
-      border-bottom: 3px solid #007bff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      text-align: center;
+
+    #app {
       position: relative;
+      width: 100vw;
+      height: 100vh;
     }
-    #info {
+
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* ---------- Topbar ---------- */
+    #topbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(201, 162, 75, 0.35);
+      padding: 14px 20px;
       display: flex;
       flex-direction: column;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+    }
+
+    .brand svg {
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 21px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--navy);
+      letter-spacing: 0.3px;
+    }
+
+    .brand-text p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--ink-soft);
+      letter-spacing: 0.4px;
+    }
+
+    #topbar-inner {
+      max-width: 1400px;
       width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    #instructions {
-      font-size: 16px;
-      margin-bottom: 5px;
+
+    #topbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      justify-content: space-between;
     }
-    #map {
-      height: calc(100vh - 120px);
-      width: 100%;
-    }
-    .btn-container {
+
+    #steps {
+      list-style: none;
       display: flex;
       justify-content: center;
+      flex: 1;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      flex-wrap: wrap;
+    }
+
+    #steps li {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--ink-soft);
+      background: rgba(16, 32, 43, 0.04);
+      border: 1px solid rgba(16, 32, 43, 0.08);
+      padding: 6px 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s ease;
+    }
+
+    #steps li .n {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(16, 32, 43, 0.08);
+      font-size: 10px;
+      color: inherit;
+    }
+
+    #steps li.active {
+      color: var(--navy);
+      background: var(--gold);
+      border-color: var(--gold);
+      font-weight: 600;
+    }
+
+    #steps li.active .n {
+      background: rgba(16, 32, 43, 0.2);
+    }
+
+    #steps li.done {
+      color: var(--teal);
+      border-color: rgba(30, 75, 71, 0.3);
+      background: rgba(30, 75, 71, 0.06);
+    }
+
+    #steps li.done .n {
+      background: var(--teal);
+      color: var(--ivory);
+    }
+
+    #toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    #maptype-control {
+      position: absolute;
+      bottom: 22px;
+      left: 20px;
+      z-index: 10;
+      background: #ffffff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .mt-tabs {
+      display: flex;
+    }
+
+    .mt-tab {
+      border: none;
+      background: #fff;
+      padding: 9px 16px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      color: #444;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+
+    .mt-tab:hover {
+      background: #f5f5f5;
+    }
+
+    .mt-tab.active {
+      color: #111;
+      font-weight: 700;
+      border-bottom-color: var(--gold);
+    }
+
+    .mt-overlay {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-top: 1px solid #eee;
+      font-family: var(--font-body);
+      font-size: 12.5px;
+      color: #333;
+      cursor: pointer;
+    }
+
+    .mt-overlay input {
+      margin: 0;
+      accent-color: var(--gold);
+    }
+
+    #search-container {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(16, 32, 43, 0.12);
+      border-radius: 999px;
+      padding: 0 14px;
+      width: 240px;
+    }
+
+    #search-container svg {
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+
+    #search-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 13px;
+      padding: 9px 8px;
       width: 100%;
     }
-    .btn {
-      background: #007bff;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 50px;
-      cursor: pointer;
-      margin: 0 5px;
-      font-size: 14px;
-      font-weight: bold;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      flex: 1;
+
+    #search-input::placeholder {
+      color: var(--ink-soft);
     }
-    .btn:hover {
-      background: #0056b3;
-      transform: translateY(-2px);
-    }
-    /* Modal styles */
-    #triangleModal {
+
+    /* ---------- Magnifying loupe (drag aid) ---------- */
+    #loupe {
       display: none;
       position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.6);
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      border: 3px solid var(--gold);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+      z-index: 500;
+      pointer-events: none;
+    }
+
+    #loupe-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #loupe-crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 18px;
+      height: 18px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    #loupe-crosshair::before,
+    #loupe-crosshair::after {
+      content: '';
+      position: absolute;
+      background: var(--terracotta);
+    }
+
+    #loupe-crosshair::before {
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      transform: translateX(-50%);
+    }
+
+    #loupe-crosshair::after {
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      transform: translateY(-50%);
+    }
+
+    /* ---------- Dock (controls) ---------- */
+    #dock {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(201, 162, 75, 0.35);
+      padding: 8px;
+      border-radius: 999px;
+      max-width: 94vw;
+      overflow-x: auto;
+    }
+
+    .btn {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      padding: 10px 18px;
+      border-radius: 999px;
+      transition: transform 0.15s ease, background 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink);
+    }
+
+    .btn-ghost:hover {
+      background: rgba(16, 32, 43, 0.06);
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy);
+    }
+
+    .btn-primary:hover {
+      background: var(--gold-light);
+    }
+
+    /* ---------- Stat card ---------- */
+    #stat-card {
+      position: absolute;
+      top: 108px;
+      right: 20px;
+      z-index: 10;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(201, 162, 75, 0.35);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      width: 240px;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #stat-card.hidden {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+    }
+
+    .compass-mini {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(201, 162, 75, 0.4);
+      position: relative;
+      background: radial-gradient(circle, rgba(201, 162, 75, 0.08), transparent 70%);
+    }
+
+    .compass-mini::before {
+      content: 'N';
+      position: absolute;
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-family: var(--font-mono);
+      color: var(--navy);
+    }
+
+    .needle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 24px;
+      background: linear-gradient(var(--gold-light), var(--terracotta));
+      transform-origin: bottom center;
+      transform: translate(-50%, -100%) rotate(0deg);
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .needle::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 6px solid var(--gold-light);
+    }
+
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(16, 32, 43, 0.08);
+      padding-bottom: 8px;
+    }
+
+    .stat:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .stat .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--ink-soft);
+    }
+
+    .stat .value {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--teal);
+    }
+
+    .stat.turn .value {
+      color: var(--terracotta);
+      font-size: 16px;
+    }
+
+    /* ---------- Hint line ---------- */
+    #hint {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      font-style: italic;
+    }
+
+    /* ---------- Toast ---------- */
+    #toast {
+      position: absolute;
+      bottom: 92px;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      z-index: 20;
+      background: var(--terracotta);
+      color: var(--ivory);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      max-width: 80vw;
+      text-align: center;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 18, 24, 0.75);
+      backdrop-filter: blur(4px);
       justify-content: center;
       align-items: center;
       z-index: 1000;
-    }
-    #triangleContent {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      max-width: 95%;
-      min-width: unset;
-      animation: fadeIn 0.3s ease-out;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    h3 {
-      color: #333;
-      margin-top: 0;
-      font-size: 20px;
-      border-bottom: 2px solid #007bff;
-      padding-bottom: 10px;
-    }
-    canvas {
-      border: 1px solid #ccc;
-      margin: 15px 0;
-      background-color: #fefefe;
-      border-radius: 8px;
-      max-width: 100%;
-      height: auto;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    
-    /* Search Bar styles */
-    #search-container {
-      width: 100%;
-      max-width: 400px;
-      margin-top: 10px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-      border-radius: 50px;
-      overflow: hidden;
-      display: flex;
-      background-color: white;
-    }
-    #search-input {
-      box-sizing: border-box;
-      border: none;
-      width: 100%;
-      height: 40px;
-      padding: 0 15px;
-      font-size: 16px;
-      outline: none;
-      text-overflow: ellipsis;
+      padding: 16px;
     }
 
-    /* Media query for larger screens */
-    @media (min-width: 601px) {
-      #header-container {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
+    #printModal {
+      z-index: 1100;
+    }
+
+    .modal-card {
+      background: var(--ivory);
+      color: var(--ink);
+      padding: 26px 28px;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      max-width: 95vw;
+      width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(201, 162, 75, 0.5);
+      position: relative;
+    }
+
+    .modal-card::before {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border: 1px dashed rgba(201, 162, 75, 0.35);
+      border-radius: 10px;
+      pointer-events: none;
+    }
+
+    .modal-card h3 {
+      font-family: var(--font-display);
+      color: var(--navy);
+      margin: 0 0 4px;
+      font-size: 20px;
+    }
+
+    .modal-card .subtitle {
+      font-size: 12px;
+      color: #7a7568;
+      margin-bottom: 14px;
+      letter-spacing: 0.3px;
+    }
+
+    .tri-text {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.9;
+      background: rgba(30, 75, 71, 0.06);
+      border-left: 3px solid var(--teal);
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+
+    .tri-text b {
+      color: var(--terracotta);
+    }
+
+    .tri-text .qibla-label {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .diagram-canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      background: repeating-linear-gradient(0deg, rgba(30, 75, 71, 0.05) 0 1px, transparent 1px 24px),
+        repeating-linear-gradient(90deg, rgba(30, 75, 71, 0.05) 0 1px, transparent 1px 24px),
+        #fffdf8;
+      border: 1px solid rgba(30, 75, 71, 0.15);
+      margin: 6px 0 12px;
+    }
+
+    #triangleCanvas {
+      max-width: 320px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      font-size: 11.5px;
+      margin-bottom: 14px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend .swatch {
+      width: 16px;
+      height: 3px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    .modal-btns {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .modal-btns .btn-ghost {
+      color: var(--navy);
+      border: 1px solid rgba(16, 32, 43, 0.15);
+    }
+
+    .modal-btns .btn-ghost:hover {
+      background: rgba(16, 32, 43, 0.06);
+    }
+
+    .modal-btns .btn-primary {
+      background: var(--navy);
+      color: var(--ivory);
+    }
+
+    .modal-btns .btn-primary:hover {
+      background: var(--navy-light);
+    }
+
+    @media (max-width: 640px) {
+      #topbar {
+        padding: 10px 12px;
+        gap: 8px;
       }
-      #info {
-        flex-direction: row;
-        width: auto;
-        flex-grow: 1;
-        justify-content: flex-start;
+
+      .brand {
+        gap: 8px;
       }
-      #instructions {
-        font-size: 18px;
-        margin-bottom: 0;
+
+      .brand svg {
+        width: 26px;
+        height: 26px;
       }
-      #map {
-        height: calc(100vh - 63px);
+
+      .brand-text h1 {
+        font-size: 15px;
       }
-      .btn-container {
-        width: auto;
+
+      .brand-text p {
+        display: none;
       }
-      .btn {
-        flex: unset;
-        margin-left: 10px;
+
+      #topbar-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
       }
-      #triangleContent {
-        padding: 30px;
-        min-width: 400px;
-        max-width: 90%;
+
+      #steps {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 5px;
+        padding-bottom: 2px;
       }
+
+      #steps::-webkit-scrollbar {
+        display: none;
+      }
+
+      #steps li {
+        flex-shrink: 0;
+        font-size: 10.5px;
+        padding: 5px 10px;
+        white-space: nowrap;
+      }
+
       #search-container {
-        position: static;
-        margin: 0;
-        margin-left: 20px;
-        box-shadow: none;
-        background: transparent;
+        max-width: none;
+        min-width: 0;
+        width: 100%;
       }
+
       #search-input {
-        border-radius: 2px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        background-color: white;
+        font-size: 13px;
+        padding: 8px 6px;
+      }
+
+      #toolbar-right {
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      #loupe {
+        width: 130px;
+        height: 130px;
+      }
+
+      /* Move the map type control up under the header on mobile — the
+         bottom of the screen is already busy with the stat card and dock. */
+      #maptype-control {
+        bottom: auto;
+        left: 12px;
+      }
+
+      .mt-tab {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+
+      .mt-overlay {
+        padding: 6px 10px;
+        font-size: 11.5px;
+      }
+
+      #hint {
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      #stat-card {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        top: auto;
+        bottom: 78px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .compass-mini {
+        width: 38px;
+        height: 38px;
+        margin: 0;
+        flex-shrink: 0;
+      }
+
+      .compass-mini::before {
+        font-size: 7px;
+      }
+
+      .needle {
+        height: 15px;
+      }
+
+      .stats {
+        flex-direction: row;
+        flex: 1;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 6px;
+        row-gap: 8px;
+      }
+
+      .stat {
+        flex-direction: column;
+        align-items: flex-start;
+        border-bottom: none;
+        padding-bottom: 0;
+        gap: 4px;
+      }
+
+      .stat .label {
+        font-size: 9px;
+      }
+
+      .stat .value {
+        font-size: 12px;
+      }
+
+      .stat.turn {
+        flex-basis: 100%;
+        flex-direction: row;
+        align-items: baseline;
+        justify-content: space-between;
+        padding-top: 8px;
+        border-top: 1px solid rgba(16, 32, 43, 0.08);
+      }
+
+      .stat.turn .value {
+        font-size: 13px;
+      }
+
+      #dock {
+        bottom: 12px;
+        padding: 6px;
+        gap: 4px;
+      }
+
+      .btn {
+        padding: 8px 12px;
+        font-size: 11.5px;
+      }
+
+      .modal-card {
+        padding: 18px 16px;
       }
     }
   </style>
 </head>
+
 <body>
-  <div id="header-container">
-    <div id="info">
-      <span id="instructions">Click your location, then two points along your reference (wall/street).</span>
-      <div class="btn-container">
-        <button class="btn" onclick="restartTool()">Restart</button>
-        <button class="btn" onclick="showTriangle()">Show Triangle</button>
-        <button class="btn" id="toggle3dBtn" onclick="toggle3DView()">Turn 3D On</button>
+  <div id="app">
+    <div id="map"></div>
+
+    <header id="topbar">
+      <div id="topbar-inner">
+        <div class="brand">
+          <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+            <circle cx="17" cy="17" r="15.5" stroke="#C9A24B" stroke-width="1.4" />
+            <path d="M17 4 L19.5 14.5 L30 17 L19.5 19.5 L17 30 L14.5 19.5 L4 17 L14.5 14.5 Z" fill="#C9A24B"
+              opacity="0.85" />
+            <circle cx="17" cy="17" r="2" fill="#10202B" />
+          </svg>
+          <div class="brand-text">
+            <h1>Qibla Finder</h1>
+            <p>Align by sight, not guesswork</p>
+          </div>
+        </div>
+
+        <div id="topbar-row">
+          <ol id="steps">
+            <li id="step-1" class="active"><span class="n">1</span> Mark your spot</li>
+            <li id="step-2"><span class="n">2</span> Reference point A</li>
+            <li id="step-3"><span class="n">3</span> Reference point B</li>
+          </ol>
+
+          <div id="toolbar-right">
+            <div id="search-container">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1B1B18" stroke-width="2">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input id="search-input" type="text" placeholder="Search for a location">
+            </div>
+          </div>
+        </div>
+
+        <div id="hint">Tap the map to mark where you're standing.</div>
+      </div>
+    </header>
+
+    <div id="loupe">
+      <div id="loupe-map"></div>
+      <div id="loupe-crosshair"></div>
+    </div>
+
+    <div id="maptype-control">
+      <div class="mt-tabs">
+        <button type="button" class="mt-tab" data-type="roadmap" onclick="setBaseMapType('roadmap')">Map</button>
+        <button type="button" class="mt-tab active" data-type="satellite"
+          onclick="setBaseMapType('satellite')">Satellite</button>
+      </div>
+      <label class="mt-overlay">
+        <input type="checkbox" id="mt-overlay-checkbox" onchange="toggleMapOverlay(this.checked)">
+        <span id="mt-overlay-label">Labels</span>
+      </label>
+    </div>
+
+    <div id="dock">
+      <button class="btn btn-ghost" onclick="restartTool()">Restart</button>
+      <button class="btn btn-ghost" id="qiblaLineBtn" onclick="toggleQiblaLine()">Show Qibla Line</button>
+      <button class="btn btn-primary" onclick="showTriangle()">Show Triangle</button>
+    </div>
+
+    <div id="stat-card" class="hidden">
+      <div class="compass-mini">
+        <div class="needle" id="needle"></div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="label">Qibla Bearing</span>
+          <span class="value" id="stat-qibla">--°</span>
+        </div>
+        <div class="stat">
+          <span class="label">Reference Bearing</span>
+          <span class="value" id="stat-ref">--°</span>
+        </div>
+        <div class="stat turn">
+          <span class="label">Turn</span>
+          <span class="value"><span id="stat-turn-value">--°</span> <span id="stat-turn-dir"></span></span>
+        </div>
       </div>
     </div>
-    <div id="search-container">
-      <input id="search-input" type="text" placeholder="Search for a location">
+
+    <div id="toast"></div>
+  </div>
+
+  <div id="triangleModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>Qibla Alignment Diagram</h3>
+      <div class="subtitle">Face point A → B, then turn to face the Qibla</div>
+      <div class="legend">
+        <span><i class="swatch" style="background:#B5542A"></i>Reference direction (A → B)</span>
+        <span><i class="swatch" style="background:#C9A24B"></i>Qibla direction</span>
+      </div>
+      <canvas id="triangleCanvas" class="diagram-canvas" width="320" height="320"></canvas>
+      <p id="triangleText" class="tri-text"></p>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="rotateTriangle(-90)">↺ Rotate 90°</button>
+        <button class="btn btn-ghost" onclick="rotateTriangle(90)">↻ Rotate 90°</button>
+        <button class="btn btn-primary" onclick="openPrintModal()">Print</button>
+        <button class="btn btn-ghost" onclick="closeTriangle()">Close</button>
+      </div>
     </div>
   </div>
-  <div id="map"></div>
 
-  <div id="triangleModal">
-    <div id="triangleContent">
-      <h3>Triangle for Qibla Direction</h3>
-      <p id="triangleText"></p>
-      <canvas id="triangleCanvas" width="450" height="300"></canvas><br> 
-      <div class="btn-container">
-        <button class="btn" onclick="rotateTriangle(-90)">Rotate Left 90°</button>
-        <button class="btn" onclick="rotateTriangle(90)">Rotate Right 90°</button>
-      </div>
-      <br>
-      <div class="btn-container">
-        <button class="btn" onclick="printTriangle()">Print</button>
-        <button class="btn" onclick="closeTriangle()">Close</button>
+  <div id="printModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>Print Size</h3>
+      <div class="subtitle">Resize just for printing — this won't change what you see on screen</div>
+      <canvas id="printCanvas" class="diagram-canvas" width="380" height="380"></canvas>
+      <p id="printText" class="tri-text"></p>
+      <div class="modal-btns">
+        <button class="btn btn-ghost" onclick="zoomPrint(-40)">− Smaller</button>
+        <button class="btn btn-ghost" onclick="zoomPrint(40)">+ Larger</button>
+        <button class="btn btn-ghost" onclick="rotatePrint(-90)">↺ Rotate</button>
+        <button class="btn btn-ghost" onclick="rotatePrint(90)">↻ Rotate</button>
+        <button class="btn btn-primary" onclick="doPrint()">Print</button>
+        <button class="btn btn-ghost" onclick="closePrintModal()">Cancel</button>
       </div>
     </div>
   </div>
@@ -214,11 +952,59 @@
     const kaaba = { lat: 21.4225, lng: 39.8262 };
     let geocoder;
     let triangleRotation = 0;
+    let printRotation = 0;
+    let printSize = 380;
     let turnAngle, turnDirection;
-    let actualRefPoint1, actualRefPoint2;
+    let toastTimer;
+    let qiblaLine = null;
+    let qiblaLineShadow = null;
+    let qiblaLineVisible = false;
+    let baseMapType = 'satellite';
+    let mapOverlayOn = false;
+    let loupeMapInstance = null;
+    let guideLine = null;
 
     function toRad(deg) { return deg * Math.PI / 180; }
     function toDeg(rad) { return rad * 180 / Math.PI; }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+    }
+
+    function setHint(text) {
+      document.getElementById('hint').textContent = text;
+      positionOverlays();
+    }
+
+    function positionOverlays() {
+      const topbar = document.getElementById('topbar');
+      const offset = topbar.offsetHeight + 14;
+      const isMobile = window.innerWidth <= 640;
+
+      const card = document.getElementById('stat-card');
+      card.style.top = isMobile ? '' : offset + 'px';
+
+      const mtControl = document.getElementById('maptype-control');
+      mtControl.style.top = isMobile ? offset + 'px' : '';
+    }
+
+    window.addEventListener('resize', positionOverlays);
+
+    function setStep(n, state) {
+      // state: 'active' | 'done'
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('step-' + i);
+        el.classList.remove('active', 'done');
+        if (i < n) el.classList.add('done');
+        if (i === n && state === 'active') el.classList.add('active');
+        if (i === n && state === 'done') el.classList.add('done');
+      }
+      positionOverlays();
+    }
 
     function bearing(lat1, lon1, lat2, lon2) {
       let dLon = toRad(lon2 - lon1);
@@ -226,8 +1012,25 @@
       lat2 = toRad(lat2);
       let y = Math.sin(dLon) * Math.cos(lat2);
       let x = Math.cos(lat1) * Math.sin(lat2) -
-              Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
       return (toDeg(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    // Given a start point, a bearing, and a distance, returns the point you'd
+    // land on — used to extend the guide line past A and B in both directions.
+    function destinationPoint(lat, lng, bearingDeg, distanceMeters) {
+      const R = 6371000;
+      const brng = toRad(bearingDeg);
+      const lat1 = toRad(lat), lng1 = toRad(lng);
+      const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(distanceMeters / R) +
+        Math.cos(lat1) * Math.sin(distanceMeters / R) * Math.cos(brng)
+      );
+      const lng2 = lng1 + Math.atan2(
+        Math.sin(brng) * Math.sin(distanceMeters / R) * Math.cos(lat1),
+        Math.cos(distanceMeters / R) - Math.sin(lat1) * Math.sin(lat2)
+      );
+      return { lat: toDeg(lat2), lng: toDeg(lng2) };
     }
 
     function updateCalculation() {
@@ -237,87 +1040,211 @@
         let r2 = refMarker2.getPosition();
 
         if (r1.lat() === r2.lat() && r1.lng() === r2.lng()) {
-          document.getElementById("instructions").innerHTML = "<b>Error:</b> Reference points cannot be the same. Please adjust.";
+          showToast("Reference points can't be the same — please drag one to a different spot.");
           return;
         }
 
         qiblaBearing = bearing(loc.lat(), loc.lng(), kaaba.lat, kaaba.lng);
-        
-        let refBearingAB = bearing(r1.lat(), r1.lng(), r2.lat(), r2.lng());
-        let refBearingBA = bearing(r2.lat(), r2.lng(), r1.lat(), r1.lng());
 
-        let diffAB = (qiblaBearing - refBearingAB + 360) % 360;
-        let diffBA = (qiblaBearing - refBearingBA + 360) % 360;
+        // A → B is the direction you are actually facing (per your reference
+        // wall/street), so we use that bearing directly — no flipping to
+        // whichever of A→B / B→A happens to be a smaller angle.
+        refBearing = bearing(r1.lat(), r1.lng(), r2.lat(), r2.lng());
 
-        let selectedRefBearing;
-
-        if (diffAB <= 180) {
-            selectedRefBearing = refBearingAB;
-            actualRefPoint1 = r1;
-            actualRefPoint2 = r2;
-        } else if (diffBA <= 180) {
-            selectedRefBearing = refBearingBA;
-            actualRefPoint1 = r2;
-            actualRefPoint2 = r1;
-        } else {
-            if (Math.abs(diffAB - 180) < Math.abs(diffBA - 180)) {
-                selectedRefBearing = refBearingAB;
-                actualRefPoint1 = r1;
-                actualRefPoint2 = r2;
-            } else {
-                selectedRefBearing = refBearingBA;
-                actualRefPoint1 = r2;
-                actualRefPoint2 = r1;
-            }
-        }
-
-        refBearing = selectedRefBearing;
         diffAngle = (qiblaBearing - refBearing + 360) % 360;
 
-        if (diffAngle > 90 && diffAngle <= 180) {
-            turnAngle = 180 - diffAngle;
-            turnDirection = (diffAngle < 180 && (qiblaBearing - refBearing + 360) % 360 > 90) ? "Left" : "Right";
-        } else if (diffAngle > 180 && diffAngle < 270) { 
-            turnAngle = diffAngle - 180;
-            turnDirection = "Right";
-        } else if (diffAngle >= 270) {
-            turnAngle = 360 - diffAngle;
-            turnDirection = "Left";
-        } else { 
-            turnAngle = diffAngle;
-            turnDirection = "Right";
+        if (diffAngle <= 180) {
+          turnAngle = diffAngle;
+          turnDirection = "Right";
+        } else {
+          turnAngle = 360 - diffAngle;
+          turnDirection = "Left";
         }
-        
-        document.getElementById("instructions").innerHTML =
-          `<b>Qibla Bearing:</b> ${qiblaBearing.toFixed(2)}° | 
-           <b>Reference Bearing:</b> ${refBearing.toFixed(2)}° | 
-           <b>Turn:</b> ${turnAngle.toFixed(2)}° to the ${turnDirection}.`;
+
+        document.getElementById('stat-qibla').textContent = qiblaBearing.toFixed(1) + '°';
+        document.getElementById('stat-ref').textContent = refBearing.toFixed(1) + '°';
+        document.getElementById('stat-turn-value').textContent = turnAngle.toFixed(1) + '°';
+        document.getElementById('stat-turn-dir').textContent = 'to the ' + turnDirection;
+        document.getElementById('stat-card').classList.remove('hidden');
+        document.getElementById('needle').style.transform = `translate(-50%, -100%) rotate(${qiblaBearing}deg)`;
+
+        setHint('All set. Open "Show Triangle" to see which way to turn.');
+        setStep(3, 'done');
       }
+    }
+
+    // ---------- Live extended guide line ----------
+    function updateGuideLine() {
+      if (!refMarker1 || !refMarker2) {
+        if (guideLine) guideLine.setMap(null);
+        return;
+      }
+      const a = refMarker1.getPosition();
+      const b = refMarker2.getPosition();
+      const brgAB = bearing(a.lat(), a.lng(), b.lat(), b.lng());
+      const extendMeters = 35;
+      const behindA = destinationPoint(a.lat(), a.lng(), (brgAB + 180) % 360, extendMeters);
+      const beyondB = destinationPoint(b.lat(), b.lng(), brgAB, extendMeters);
+      const path = [behindA, beyondB];
+
+      if (!guideLine) {
+        guideLine = new google.maps.Polyline({
+          path,
+          geodesic: true,
+          strokeOpacity: 0,
+          icons: [{
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 2 },
+            offset: '0',
+            repeat: '10px'
+          }],
+          strokeColor: '#1E4B47',
+          zIndex: 3,
+          map
+        });
+      } else {
+        guideLine.setPath(path);
+        guideLine.setMap(map);
+      }
+    }
+
+    // ---------- Magnifying loupe (drag aid) ----------
+    function getEventClientXY(e) {
+      const de = e.domEvent;
+      if (!de) return null;
+      if (de.touches && de.touches.length) return { x: de.touches[0].clientX, y: de.touches[0].clientY };
+      if (de.changedTouches && de.changedTouches.length) return { x: de.changedTouches[0].clientX, y: de.changedTouches[0].clientY };
+      return { x: de.clientX, y: de.clientY };
+    }
+
+    function ensureLoupeMap() {
+      if (!loupeMapInstance) {
+        loupeMapInstance = new google.maps.Map(document.getElementById('loupe-map'), {
+          disableDefaultUI: true,
+          draggable: false,
+          keyboardShortcuts: false,
+          scrollwheel: false,
+          clickableIcons: false,
+          gestureHandling: 'none',
+          mapTypeId: map.getMapTypeId(),
+          zoom: Math.min(21, map.getZoom() + 3)
+        });
+      }
+      return loupeMapInstance;
+    }
+
+    function positionLoupeAt(xy) {
+      const loupe = document.getElementById('loupe');
+      if (!xy) return;
+      const w = loupe.offsetWidth || 160;
+      const h = loupe.offsetHeight || 160;
+      loupe.style.left = (xy.x - w / 2) + 'px';
+      loupe.style.top = (xy.y - h - 30) + 'px';
+    }
+
+    function showLoupe(e) {
+      const loupe = document.getElementById('loupe');
+      loupe.style.display = 'block';
+      positionLoupeAt(getEventClientXY(e));
+      const lm = ensureLoupeMap();
+      lm.setMapTypeId(map.getMapTypeId());
+      lm.setZoom(Math.min(21, map.getZoom() + 3));
+      lm.setCenter(e.latLng);
+      google.maps.event.trigger(lm, 'resize');
+      lm.setCenter(e.latLng);
+    }
+
+    function moveLoupe(e) {
+      positionLoupeAt(getEventClientXY(e));
+      if (loupeMapInstance) loupeMapInstance.setCenter(e.latLng);
+    }
+
+    function hideLoupe() {
+      document.getElementById('loupe').style.display = 'none';
     }
 
     function restartTool() {
       if (myMarker) myMarker.setMap(null);
       if (refMarker1) refMarker1.setMap(null);
       if (refMarker2) refMarker2.setMap(null);
+      if (qiblaLine) qiblaLine.setMap(null);
+      if (qiblaLineShadow) qiblaLineShadow.setMap(null);
+      if (guideLine) guideLine.setMap(null);
       myMarker = null;
       refMarker1 = null;
       refMarker2 = null;
       diffAngle = null;
-      document.getElementById("instructions").textContent = "Click your location, then two points along your reference.";
+      qiblaLineVisible = false;
+      const lineBtn = document.getElementById('qiblaLineBtn');
+      lineBtn.textContent = 'Show Qibla Line';
+      lineBtn.classList.remove('btn-primary');
+      lineBtn.classList.add('btn-ghost');
+      document.getElementById('stat-card').classList.add('hidden');
+      setStep(1, 'active');
+      setHint("Tap the map to mark where you're standing.");
     }
 
-    function toggle3DView() {
-      const is3D = map.getTilt() === 45;
-      const btn = document.getElementById('toggle3dBtn');
-      if (is3D) {
-        map.setTilt(0);
-        map.setHeading(0);
-        btn.textContent = 'Turn 3D On';
+    function setBaseMapType(type) {
+      baseMapType = type;
+      document.querySelectorAll('.mt-tab').forEach(t => t.classList.toggle('active', t.dataset.type === type));
+      document.getElementById('mt-overlay-label').textContent = type === 'roadmap' ? 'Terrain' : 'Labels';
+      document.getElementById('mt-overlay-checkbox').checked = false;
+      mapOverlayOn = false;
+      applyMapType();
+    }
+
+    function toggleMapOverlay(checked) {
+      mapOverlayOn = checked;
+      applyMapType();
+    }
+
+    function applyMapType() {
+      const id = baseMapType === 'roadmap'
+        ? (mapOverlayOn ? 'terrain' : 'roadmap')
+        : (mapOverlayOn ? 'hybrid' : 'satellite');
+      map.setMapTypeId(id);
+    }
+
+    function updateQiblaLine() {
+      if (!myMarker) return;
+      const path = [myMarker.getPosition(), kaaba];
+      if (!qiblaLine) {
+        qiblaLineShadow = new google.maps.Polyline({
+          path,
+          geodesic: true,
+          strokeColor: '#10202B',
+          strokeOpacity: 0.3,
+          strokeWeight: 6,
+          zIndex: 1,
+          map: qiblaLineVisible ? map : null
+        });
+        qiblaLine = new google.maps.Polyline({
+          path,
+          geodesic: true,
+          strokeColor: '#C9A24B',
+          strokeOpacity: 0.95,
+          strokeWeight: 3,
+          zIndex: 2,
+          map: qiblaLineVisible ? map : null
+        });
       } else {
-        map.setTilt(45);
-        map.setHeading(90);
-        btn.textContent = 'Turn 2D On';
+        qiblaLine.setPath(path);
+        qiblaLineShadow.setPath(path);
       }
+    }
+
+    function toggleQiblaLine() {
+      if (!myMarker) {
+        showToast('Mark your spot first.');
+        return;
+      }
+      qiblaLineVisible = !qiblaLineVisible;
+      updateQiblaLine();
+      qiblaLine.setMap(qiblaLineVisible ? map : null);
+      qiblaLineShadow.setMap(qiblaLineVisible ? map : null);
+      const btn = document.getElementById('qiblaLineBtn');
+      btn.textContent = qiblaLineVisible ? 'Hide Qibla Line' : 'Show Qibla Line';
+      btn.classList.toggle('btn-primary', qiblaLineVisible);
+      btn.classList.toggle('btn-ghost', !qiblaLineVisible);
     }
 
     function initMap() {
@@ -327,16 +1254,18 @@
         mapTypeId: "satellite",
         gestureHandling: "greedy",
         tilt: 0,
-        heading: 0
+        heading: 0,
+        disableDefaultUI: false,
+        zoomControl: true
       });
       geocoder = new google.maps.Geocoder();
+      positionOverlays();
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
           let myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           map.setCenter(myLocation);
-          placeMyMarker(myLocation);
-        }, () => alert("Location access denied. Click to set your location manually."));
+        }, () => showToast("Location access denied — tap the map to set your location manually."));
       }
 
       map.addListener("click", (e) => {
@@ -348,7 +1277,7 @@
           placeRefMarker2(e.latLng);
         }
       });
-      
+
       const searchInput = document.getElementById("search-input");
       searchInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -358,7 +1287,7 @@
               map.setCenter(results[0].geometry.location);
               map.setZoom(18);
             } else {
-              alert("Geocode was not successful for the following reason: " + status);
+              showToast("Couldn't find that place: " + status);
             }
           });
         }
@@ -372,8 +1301,13 @@
         draggable: true,
         label: "You"
       });
-      myMarker.addListener("dragend", updateCalculation);
+      myMarker.addListener("dragstart", showLoupe);
+      myMarker.addListener("drag", moveLoupe);
+      myMarker.addListener("dragend", (e) => { hideLoupe(); updateQiblaLine(); updateCalculation(); });
       new google.maps.Marker({ position: kaaba, map: map, label: "Kaaba" });
+      updateQiblaLine();
+      setStep(2, 'active');
+      setHint("Now tap a point along your reference wall or street (point A).");
     }
 
     function placeRefMarker1(position) {
@@ -383,7 +1317,15 @@
         draggable: true,
         label: "A"
       });
-      refMarker1.addListener("dragend", updateCalculation);
+      refMarker1.addListener("dragstart", showLoupe);
+      refMarker1.addListener("drag", (e) => { moveLoupe(e); updateGuideLine(); });
+      refMarker1.addListener("dragend", (e) => {
+        hideLoupe();
+        updateGuideLine();
+        updateCalculation();
+      });
+      setStep(3, 'active');
+      setHint("Now tap another point further along that same line (point B).");
     }
 
     function placeRefMarker2(position) {
@@ -393,8 +1335,15 @@
         draggable: true,
         label: "B"
       });
-      refMarker2.addListener("dragend", updateCalculation);
+      refMarker2.addListener("dragstart", showLoupe);
+      refMarker2.addListener("drag", (e) => { moveLoupe(e); updateGuideLine(); });
+      refMarker2.addListener("dragend", (e) => {
+        hideLoupe();
+        updateGuideLine();
+        updateCalculation();
+      });
       updateCalculation();
+      updateGuideLine();
     }
 
     function rotateTriangle(degrees) {
@@ -404,7 +1353,7 @@
 
     function showTriangle() {
       if (!diffAngle) {
-        alert("Please set your location and reference points first.");
+        showToast("Mark your spot and both reference points first.");
         return;
       }
       triangleRotation = 0;
@@ -412,139 +1361,153 @@
       document.getElementById("triangleModal").style.display = "flex";
     }
 
-    function drawTriangle() {
-      const canvas = document.getElementById("triangleCanvas");
-      const ctx = canvas.getContext("2d");
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const angle = turnAngle; 
-
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-      ctx.save();
-      ctx.translate(canvasWidth / 2, canvasHeight / 2);
-      ctx.rotate(toRad(triangleRotation));
-      ctx.translate(-canvasWidth / 2, -canvasHeight / 2);
-
-      const scale = 1.5; 
-      const baseCm = 10 * scale; 
-      const oppositeCm = Math.tan(toRad(angle)) * baseCm;
-
-      const maxBasePx = canvasWidth * 0.7; 
-      const maxOppositePx = canvasHeight * 0.7; 
-
-      let currentBasePx = baseCm * 10;
-      let currentOppositePx = oppositeCm * 10;
-
-      if (Math.abs(currentBasePx) > maxBasePx || Math.abs(currentOppositePx) > maxOppositePx) {
-          const ratioWidth = maxBasePx / Math.abs(currentBasePx);
-          const ratioHeight = maxOppositePx / Math.abs(currentOppositePx);
-          const dynamicScale = Math.min(ratioWidth, ratioHeight);
-          currentBasePx *= dynamicScale;
-          currentOppositePx *= dynamicScale;
-      }
-
-      let xRefStart, xRefEnd, xOpposite;
-      const yBase = (canvasHeight + currentOppositePx) / 2;
-      const yOpposite = yBase - currentOppositePx;
-
-      if (turnDirection === "Right") {
-          xRefStart = (canvasWidth - currentBasePx) / 2;
-          xRefEnd = xRefStart + currentBasePx;
-          xOpposite = xRefStart;
-      } else { 
-          xRefStart = (canvasWidth + currentBasePx) / 2;
-          xRefEnd = xRefStart - currentBasePx;
-          xOpposite = xRefStart;
-      }
-
+    function drawArrowhead(ctx, fromX, fromY, toX, toY, size, color) {
+      const angle = Math.atan2(toY - fromY, toX - fromX);
       ctx.beginPath();
-      ctx.moveTo(xRefStart, yBase);
-      ctx.lineTo(xRefEnd, yBase);
-      ctx.lineTo(xOpposite, yOpposite);
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - size * Math.cos(angle - Math.PI / 6), toY - size * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(toX - size * Math.cos(angle + Math.PI / 6), toY - size * Math.sin(angle + Math.PI / 6));
       ctx.closePath();
-      ctx.strokeStyle = "#007bff";
-      ctx.lineWidth = 3;
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function getTriangleDescriptionHTML() {
+      return `Face the direction from point <b>A</b> to point <b>B</b> — that's your reference.<br>
+         Turn <b>${turnAngle.toFixed(1)}° to the ${turnDirection}</b> from that direction.<br>
+         You're now facing the <span class="qibla-label">Qibla</span>.`;
+    }
+
+    // Draws the reference/Qibla ray diagram onto any canvas, at any rotation —
+    // used by both the on-screen diagram and the separate print-size preview,
+    // so resizing one never affects the other.
+    function renderTriangleOnCanvas(canvas, rotation) {
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      const angle = turnAngle;
+      const dir = turnDirection;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.save();
+      // The vertex (where you stand) sits exactly at the canvas center, so
+      // rotating the whole drawing around that same point keeps it pinned
+      // in place — nothing drifts as you rotate.
+      ctx.translate(W / 2, H / 2);
+      ctx.rotate(toRad(rotation));
+
+      const R = Math.min(W, H) * 0.36;
+
+      // Reference direction points straight up — this is "facing from A to B".
+      const refAngleRad = -Math.PI / 2;
+      // Qibla direction is the reference rotated by the signed turn angle:
+      // positive (clockwise on screen) for Right, negative for Left. This
+      // works for any angle from 0-180, not just angles under 90.
+      const sweep = dir === "Right" ? toRad(angle) : -toRad(angle);
+      const qAngleRad = refAngleRad + sweep;
+
+      const refEnd = { x: Math.cos(refAngleRad) * R, y: Math.sin(refAngleRad) * R };
+      const qEnd = { x: Math.cos(qAngleRad) * R, y: Math.sin(qAngleRad) * R };
+
+      // Angle arc between the two rays
+      const arcR = 34;
+      ctx.beginPath();
+      ctx.arc(0, 0, arcR, refAngleRad, qAngleRad, sweep < 0);
+      ctx.strokeStyle = "#1B1B18";
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.fillStyle = "#f0f8ff";
+
+      // Reference ray (terracotta) — the direction you're facing
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(refEnd.x, refEnd.y);
+      ctx.strokeStyle = "#B5542A";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      drawArrowhead(ctx, 0, 0, refEnd.x, refEnd.y, 12, "#B5542A");
+
+      // Qibla ray (gold) — where to turn to
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(qEnd.x, qEnd.y);
+      ctx.strokeStyle = "#C9A24B";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      drawArrowhead(ctx, 0, 0, qEnd.x, qEnd.y, 14, "#C9A24B");
+
+      // Vertex dot (where you stand)
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#10202B";
       ctx.fill();
 
-      ctx.beginPath();
-      ctx.moveTo(xRefStart, yBase);
-      ctx.lineTo(xRefEnd, yBase);
-      ctx.strokeStyle = "#FF0000";
-      ctx.lineWidth = 5;
-      ctx.stroke();
-
-      const angleArcRadius = 25;
-      ctx.beginPath();
-      if (turnDirection === "Right") {
-        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(0), toRad(-angle), true);
-      } else {
-        ctx.arc(xRefStart, yBase, angleArcRadius, toRad(180), toRad(180 + angle), false);
-      }
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.fillStyle = "#333";
-      ctx.font = "14px Arial";
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(`Base: ${baseCm.toFixed(1)} cm`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 10);
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
-      if (turnDirection === "Right") {
-        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite - 10, yBase - currentOppositePx / 2);
-      } else {
-        ctx.textAlign = 'left';
-        ctx.fillText(`${oppositeCm.toFixed(1)} cm`, xOpposite + 10, yBase - currentOppositePx / 2);
-      }
-
-      ctx.fillStyle = "#FF0000";
-      ctx.fillText(`Reference Side`, xRefStart + (xRefEnd - xRefStart) / 2, yBase + 30);
-      
-      const angleTextOffset = 15;
-      let angleTextX, angleTextY;
-      
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = "#333";
-      
-      if (turnDirection === "Right") {
-        angleTextX = xRefStart + angleTextOffset * Math.cos(toRad(angle / 2));
-        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
-      } else {
-        angleTextX = xRefStart - angleTextOffset * Math.cos(toRad(angle / 2));
-        angleTextY = yBase - angleTextOffset * Math.sin(toRad(angle / 2));
-      }
-      
-      ctx.fillText(`${angle.toFixed(1)}°`, angleTextX, angleTextY);
-
-      document.getElementById("triangleText").innerHTML =
-        `Base (align with reference): <b>${baseCm.toFixed(1)} cm</b><br>
-         Opposite side: <b>${oppositeCm.toFixed(1)} cm</b><br>
-         Hypotenuse: <b>${Math.sqrt(baseCm**2 + oppositeCm**2).toFixed(1)} cm</b><br>
-         Turn: <b>${angle.toFixed(2)}° to the ${turnDirection}</b>`;
+      // TEMP (testing): show the numeric angle near the arc
+      const bisector = refAngleRad + sweep / 2;
+      ctx.fillStyle = "#1B1B18";
+      ctx.font = "600 13px 'IBM Plex Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(angle.toFixed(1) + "°", Math.cos(bisector) * (arcR + 18), Math.sin(bisector) * (arcR + 18));
 
       ctx.restore();
+    }
+
+    function drawTriangle() {
+      const canvas = document.getElementById("triangleCanvas");
+      renderTriangleOnCanvas(canvas, triangleRotation);
+      document.getElementById("triangleText").innerHTML = getTriangleDescriptionHTML();
     }
 
     function closeTriangle() {
       document.getElementById("triangleModal").style.display = "none";
     }
 
-    function printTriangle() {
+    function openPrintModal() {
+      if (!diffAngle) {
+        showToast("Mark your spot and both reference points first.");
+        return;
+      }
+      printRotation = triangleRotation;
+      const canvas = document.getElementById("printCanvas");
+      canvas.width = printSize;
+      canvas.height = printSize;
+      canvas.style.maxWidth = printSize + 'px';
+      renderTriangleOnCanvas(canvas, printRotation);
+      document.getElementById("printText").innerHTML = getTriangleDescriptionHTML();
+      document.getElementById("printModal").style.display = "flex";
+    }
+
+    function rotatePrint(degrees) {
+      printRotation += degrees;
+      renderTriangleOnCanvas(document.getElementById("printCanvas"), printRotation);
+    }
+
+    function zoomPrint(delta) {
+      printSize = Math.max(240, Math.min(900, printSize + delta));
+      const canvas = document.getElementById("printCanvas");
+      canvas.width = printSize;
+      canvas.height = printSize;
+      canvas.style.maxWidth = printSize + 'px';
+      renderTriangleOnCanvas(canvas, printRotation);
+    }
+
+    function closePrintModal() {
+      document.getElementById("printModal").style.display = "none";
+    }
+
+    function doPrint() {
       const printWindow = window.open("", "_blank");
-      printWindow.document.write("<h3>Qibla Triangle</h3>");
-      printWindow.document.write(document.getElementById("triangleText").innerHTML);
-      printWindow.document.write("<br><img src='" + document.getElementById("triangleCanvas").toDataURL() + "'>");
+      printWindow.document.write("<h3 style='font-family:Georgia,serif'>Qibla Alignment Diagram</h3>");
+      printWindow.document.write(document.getElementById("printText").innerHTML);
+      printWindow.document.write("<br><img src='" + document.getElementById("printCanvas").toDataURL() + "'>");
       printWindow.document.close();
       printWindow.print();
     }
   </script>
 
-  <script async
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1gS6-rK3A-W8fXYrctE1MSuFDNzD61eQ&libraries=places&callback=initMap">
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA1gS6-rK3A-W8fXYrctE1MSuFDNzD61eQ&libraries=places&callback=initMap">
   </script>
 </body>
+
 </html>
